@@ -1,0 +1,136 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>О проекте — АвтоОценка</title>
+  <meta name="description" content="Как работает оценка автомобиля по фото: нейросеть, модель цены, данные и точность.">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='9' fill='%232451c7'/><path d='M7 19l2-5c.4-1 1.3-1.6 2.3-1.6h9.4c1 0 1.9.6 2.3 1.6l2 5v4h-3v-2H10v2H7z' fill='white'/></svg>">
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+<header>
+  <div class="wrap">
+    <a class="logo" href="/">
+      <span class="logo-mark">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 17h14v-4l-2-5H7l-2 5z"/><circle cx="8" cy="17" r="1.5"/><circle cx="16" cy="17" r="1.5"/></svg>
+      </span>
+      АвтоОценка
+    </a>
+    <nav>
+      <a href="/">Оценка</a>
+      <a href="/about" class="active">О проекте</a>
+    </nav>
+  </div>
+</header>
+
+<main class="wrap">
+  <section class="hero">
+    <h1>Как это работает</h1>
+    <p>Сервис объединяет компьютерное зрение и эконометрику: нейросеть узнаёт автомобиль по фото,
+       а модель цены оценивает его стоимость по году, пробегу и характеристикам.</p>
+  </section>
+
+  <div class="grid grid-4">
+    <div class="card metric"><div class="num" id="mPrice">—</div><div class="cap">средняя ошибка цены, если модель известна (MAPE)</div></div>
+    <div class="card metric"><div class="num" id="mE2E">—</div><div class="cap">средняя ошибка цены по фото</div></div>
+    <div class="card metric"><div class="num" id="mRec">—</div><div class="cap">точность распознавания модели</div></div>
+    <div class="card metric"><div class="num" id="mCov">—</div><div class="cap">реальных цен попадает в диапазон</div></div>
+  </div>
+  <p class="muted small">Все показатели посчитаны на тестовой выборке — машинах, которых модель не видела при обучении.
+     <span id="mData"></span></p>
+
+  <div class="card section">
+    <h2>Путь от фото до цены</h2>
+    <div class="flow">
+      <div class="box"><b>Фото</b>пользователя</div><span class="arrow">→</span>
+      <div class="box"><b>Удаление фона</b>u2net</div><span class="arrow">→</span>
+      <div class="box acc"><b>Нейросеть</b>ConvNeXt-Tiny</div><span class="arrow">→</span>
+      <div class="box"><b>Модель, цвет, кузов</b>+ год и пробег</div><span class="arrow">→</span>
+      <div class="box acc"><b>Модель цены</b>градиентный бустинг</div><span class="arrow">→</span>
+      <div class="box"><b>Цена в ₽</b>+ PDF-отчёт</div>
+    </div>
+  </div>
+
+  <div class="grid grid-2 section">
+    <div class="card">
+      <h2>Этапы</h2>
+      <div class="steps">
+        <div class="step"><div><b>Подготовка фото</b><p>Фон удаляется, машина помещается на белый квадрат — так же выглядят фото, на которых училась нейросеть.</p></div></div>
+        <div class="step"><div><b>Распознавание</b><p>Нейросеть ConvNeXt-Tiny, предобученная на ImageNet и дообученная на фото DVM-CAR, определяет марку и модель, цвет и тип кузова.</p></div></div>
+        <div class="step"><div><b>Оценка цены</b><p>Градиентный бустинг учитывает модель, возраст, пробег, цвет, кузов и цену новой машины. Диапазон цены строится по реальным ошибкам модели (конформный метод).</p></div></div>
+        <div class="step"><div><b>Перевод в рубли</b><p>Цены объявлений приводятся к сегодняшнему уровню по индексу цен на подержанные авто (ONS) и переводятся по официальному курсу Банка России.</p></div></div>
+      </div>
+    </div>
+    <div class="card">
+      <h2>Данные и защита от переобучения</h2>
+      <ul class="clean">
+        <li>Датасет <a href="https://deepvisualmarketing.github.io/" target="_blank" rel="noopener">DVM-CAR</a>: 1,4 млн фото и 268 тыс. объявлений о продаже автомобилей в Великобритании.</li>
+        <li>Для распознавания — фото машин 2013–2020 годов, вид спереди, по одному фото на объявление.</li>
+        <li>Данные разделены на обучающую, проверочную и тестовую части (70/15/15) по объявлениям: фото одной машины не попадает в разные части.</li>
+        <li>Гиперпараметры подобраны библиотекой Optuna только по проверочной части; тестовая часть использована один раз — для итоговых цифр.</li>
+        <li>Ранняя остановка, регуляризация и аугментации фото не дают модели «заучить» обучающие примеры.</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="card section" id="curvesCard" hidden>
+    <h2>Обучение</h2>
+    <img class="curves" src="/api/curves.png" alt="Графики обучения нейросети и ошибки модели цены">
+  </div>
+
+  <div class="card section" id="metricsCard" hidden>
+    <h2>Подробные метрики</h2>
+    <pre class="metrics" id="metricsText"></pre>
+  </div>
+
+  <div class="grid grid-2 section">
+    <div class="card">
+      <h2>Ограничения</h2>
+      <ul class="clean">
+        <li>Цены — британского рынка в пересчёте на рубли; это не цена на российском рынке.</li>
+        <li>Машин новее 2021 года в датасете нет — для них оценка менее точна.</li>
+        <li>По фото не видно техническое состояние, ДТП и комплектацию.</li>
+        <li>Оценка не является официальным оценочным заключением.</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h2>Технологии</h2>
+      <div class="tags">
+        <span class="tag">Python</span><span class="tag">PyTorch</span><span class="tag">ConvNeXt</span>
+        <span class="tag">scikit-learn</span><span class="tag">Optuna</span><span class="tag">FastAPI</span>
+        <span class="tag">Chart.js</span><span class="tag">Docker</span>
+      </div>
+      <h3 style="margin-top:22px">Команда</h3>
+      <p class="muted" style="margin:0">Впишите здесь участников проекта.</p>
+    </div>
+  </div>
+</main>
+
+<footer>
+  <div class="wrap">
+    <span>АвтоОценка · дипломный проект</span>
+    <span>Данные: DVM-CAR (CC BY-NC), ONS, Банк России</span>
+  </div>
+</footer>
+
+<script>
+  // Подставляем реальные метрики модели с сервера
+  fetch("/api/info").then((r) => r.json()).then((info) => {
+    const q = info.quality, p = (x) => (x * 100).toFixed(1).replace(".", ",") + " %";
+    document.getElementById("mPrice").textContent = p(q.price_test_mape);
+    document.getElementById("mE2E").textContent = p(q.e2e_mape);
+    document.getElementById("mRec").textContent = p(q.recognition);
+    document.getElementById("mCov").textContent = p(q.coverage);
+    document.getElementById("mData").textContent =
+      `Обучено на ${q.n_ads.toLocaleString("ru-RU")} объявлениях и ${q.n_images.toLocaleString("ru-RU")} фото, ` +
+      `модель знает ${info.n_models} моделей автомобилей.`;
+    if (info.has_curves) document.getElementById("curvesCard").hidden = false;
+    if (info.metrics_text) {
+      document.getElementById("metricsText").textContent = info.metrics_text;
+      document.getElementById("metricsCard").hidden = false;
+    }
+  });
+</script>
+</body>
+</html>

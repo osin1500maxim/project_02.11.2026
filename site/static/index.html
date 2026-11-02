@@ -1,0 +1,159 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>АвтоОценка — цена автомобиля по фото</title>
+  <meta name="description" content="Загрузите фото автомобиля, укажите год и пробег — нейросеть определит модель и оценит рыночную стоимость.">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='9' fill='%232451c7'/><path d='M7 19l2-5c.4-1 1.3-1.6 2.3-1.6h9.4c1 0 1.9.6 2.3 1.6l2 5v4h-3v-2H10v2H7z' fill='white'/></svg>">
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+<header>
+  <div class="wrap">
+    <a class="logo" href="/">
+      <span class="logo-mark">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 17h14v-4l-2-5H7l-2 5z"/><circle cx="8" cy="17" r="1.5"/><circle cx="16" cy="17" r="1.5"/></svg>
+      </span>
+      АвтоОценка
+    </a>
+    <nav>
+      <a href="/" class="active">Оценка</a>
+      <a href="/about">О проекте</a>
+    </nav>
+  </div>
+</header>
+
+<main class="wrap">
+  <section class="hero">
+    <h1>Сколько стоит машина?<br>Узнайте по одной фотографии</h1>
+    <p>Нейросеть определит марку и модель, а модель цены оценит стоимость с учётом года выпуска и пробега.</p>
+  </section>
+
+  <!-- ===== форма ===== -->
+  <form id="form" class="card form" novalidate>
+    <div>
+      <div id="drop" class="drop" tabindex="0" role="button" aria-label="Загрузить фото">
+        <div class="hint" id="hint">
+          <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="#2451c7" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="9" cy="11" r="2"/><path d="M21 17l-5-5-9 7"/></svg>
+          <b>Перетащите фото сюда</b>
+          или нажмите, чтобы выбрать файл · JPG или PNG до 10 МБ
+        </div>
+        <img id="preview" alt="" hidden>
+        <span class="change" id="change" hidden>Заменить фото</span>
+      </div>
+      <input type="file" id="file" accept="image/jpeg,image/png,image/webp" hidden>
+      <ul class="tips">
+        <li>Лучше всего — вид спереди или спереди-сбоку, машина целиком в кадре.</li>
+      </ul>
+    </div>
+
+    <div class="fields">
+      <div>
+        <label for="year">Год выпуска</label>
+        <input type="number" id="year" placeholder="Например, 2017" min="1990" inputmode="numeric" required>
+      </div>
+      <div>
+        <label for="km">Пробег</label>
+        <div class="input-unit">
+          <input type="text" id="km" placeholder="Например, 85 000" inputmode="numeric" required>
+          <span>км</span>
+        </div>
+      </div>
+      <div id="formError" class="error" hidden></div>
+      <button class="btn" id="submit" type="submit">Оценить автомобиль</button>
+      <p class="muted small" style="margin:0">Оценка занимает несколько секунд. Фото не сохраняется на сервере.</p>
+    </div>
+  </form>
+
+  <div id="loading" class="loading">
+    <div class="spinner"></div>
+    <div id="loadingText" class="muted">Убираем фон с фото…</div>
+  </div>
+
+  <!-- ===== результат ===== -->
+  <section id="result" aria-live="polite">
+    <h2 style="margin-top:40px">Результат</h2>
+    <div class="res-top">
+      <div class="card photo-card">
+        <img id="rPhoto" alt="Фото автомобиля">
+        <div class="model-name" id="rModel"></div>
+        <div class="muted small" id="rModelNote"></div>
+        <div class="chips" id="rChips"></div>
+        <dl class="specs" id="rSpecs"></dl>
+      </div>
+
+      <div class="card price-card">
+        <div class="label">Рыночная стоимость</div>
+        <div class="price" id="rPrice"></div>
+        <div class="range">
+          <div class="range-bar"><div class="range-dot" id="rDot"></div></div>
+          <div class="range-labels"><span>от <b id="rLow"></b></span><span>до <b id="rHigh"></b></span></div>
+        </div>
+        <div class="rate" id="rRate"></div>
+        <div id="rWarn"></div>
+        <div class="actions">
+          <a class="btn" id="rPdf" href="#">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12m0 0l-4-4m4 4l4-4M4 19h16"/></svg>
+            Скачать PDF-отчёт
+          </a>
+          <button class="btn btn-ghost" id="again" type="button">Оценить другую</button>
+        </div>
+        <div class="override">
+          <div class="muted small" style="margin-bottom:8px">Нейросеть ошиблась с моделью? Укажите её вручную:</div>
+          <div class="override-row">
+            <input type="text" id="manualModel" list="modelsList" placeholder="Начните вводить, например BMW 3 Series">
+            <button class="btn btn-ghost" id="recalc" type="button">Пересчитать</button>
+          </div>
+          <datalist id="modelsList"></datalist>
+        </div>
+      </div>
+    </div>
+
+    <div class="grid grid-4 section">
+      <div class="card stat"><div class="num" id="sYear"></div><div class="cap">потеря стоимости за год</div></div>
+      <div class="card stat"><div class="num" id="s10k"></div><div class="cap">стоят каждые 10 000 км пробега</div></div>
+      <div class="card stat"><div class="num" id="sKm"></div><div class="cap" id="sKmCap"></div></div>
+      <div class="card stat"><div class="num" id="sNew"></div><div class="cap" id="sNewCap"></div></div>
+    </div>
+
+    <div class="grid grid-2 section">
+      <div class="card">
+        <h3>Цена по годам выпуска</h3>
+        <div class="chart-box"><canvas id="cCurve"></canvas></div>
+        <div class="muted small">Эта модель при типичном пробеге; точка — ваша машина</div>
+      </div>
+      <div class="card">
+        <h3>Прогноз цены</h3>
+        <div class="chart-box"><canvas id="cForecast"></canvas></div>
+        <div class="muted small">При вашем темпе пробега, в сегодняшних ценах</div>
+      </div>
+    </div>
+
+    <div class="grid grid-2 section">
+      <div class="card">
+        <h3>Цвет и цена</h3>
+        <div class="chart-box"><canvas id="cColors"></canvas></div>
+        <div class="muted small">Доля объявлений каждого цвета; в подсказке — влияние цвета на цену вашей машины</div>
+      </div>
+      <div class="card">
+        <h3>Похожие объявления</h3>
+        <div id="rMarket" class="muted"></div>
+        <h3 style="margin-top:22px">Продажи новых по годам</h3>
+        <div class="chart-box" style="height:170px"><canvas id="cSales"></canvas></div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <div class="wrap">
+    <span>АвтоОценка · дипломный проект</span>
+    <span>Данные: DVM-CAR (Великобритания), курс — Банк России</span>
+  </div>
+</footer>
+
+<script src="/static/vendor/chart.umd.js"></script>
+<script src="/static/app.js"></script>
+</body>
+</html>

@@ -1,0 +1,13 @@
+# torch и torchvision ставятся отдельно (версия для процессора) — см. Dockerfile / README
+fastapi>=0.110
+uvicorn[standard]>=0.29
+python-multipart>=0.0.9   # приём файлов из формы
+scikit-learn>=1.4
+optuna>=3.5               # нужен только потому, что train.py его импортирует
+pandas>=2.1
+numpy>=1.26
+pillow>=10.0
+matplotlib>=3.8           # PDF-отчёт
+joblib>=1.3
+rembg>=2.0.50             # удаление фона
+onnxruntime>=1.17

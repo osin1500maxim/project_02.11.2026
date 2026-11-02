@@ -1,0 +1,18 @@
+# данные DVM-CAR (большие, лицензия CC BY-NC) — в репозиторий не кладём
+*.csv
+*.zip
+# обученные модели (большие файлы)
+*.pt
+*.joblib
+best_params.json
+# результаты
+*.pdf
+training_curves.png
+metrics.txt
+# окружение и кэш
+__pycache__/
+*.pyc
+.venv/
+.env
+# но README в папке моделей сайта оставляем
+!site/models/README.txt

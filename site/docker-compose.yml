@@ -1,0 +1,25 @@
+# Запуск на сервере:  docker compose up -d --build
+services:
+  app:
+    build: .
+    restart: unless-stopped
+    environment:
+      - MAX_PARALLEL=2          # сколько оценок считать одновременно (по числу ядер / 2)
+
+  # Caddy — веб-сервер перед сайтом: сам получает HTTPS-сертификат для домена
+  caddy:
+    image: caddy:2.8
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      - DOMAIN=${DOMAIN:-:80}   # домен из файла .env; без домена сайт работает по http://IP-сервера
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+    depends_on:
+      - app
+
+volumes:
+  caddy_data:
